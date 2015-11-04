@@ -1,0 +1,14 @@
+{
+    "webserver_port": 4242,
+    "pictures_name": "mariage",
+    "pictures_param": {
+        "width": 1400,
+        "height": 999,
+        "timing": 500
+    },
+
+    "montage_param": {
+        "background": "\"#FFFFFF\"",
+        "geometry": "700x499\\>+20+20"
+    }
+}

@@ -33,6 +33,22 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var exec = require('child_process').exec;
 var pm2 = require('pm2');
+var async = require('async');
+
+var config = require('./config.json');
+
+var SHOT_COMMAND = 'raspistill' +
+    ' -t ' + config.pictures_param.timing +
+    ' -w ' + config.pictures_param.width +
+    ' -h ' + config.pictures_param.height +
+    ' -o ';
+
+var MONTAGE_COMMAND = 'montage' +
+    ' -background ' + config.montage_param.background +
+    ' -geometry ' + config.montage_param.geometry +
+    ' ';
+
+var BASE_FILENAME = '/photos/' + config.pictures_name;
 
 var shotNumber = 0;
 
@@ -44,30 +60,6 @@ var shotNumber = 0;
 function log(str) {
     var date = new Date();
     console.log(date.toUTCString(), '-', str);
-}
-
-
-function pictureProcess(filename, callback) {
-
-    log('Take picture ' + (shotNumber + 1));
-
-    var cmd = 'raspistill -t 500 -w 1400 -h 999 -o ' + filename + '_' + shotNumber + '.jpg';
-
-    exec(cmd, function (err, stdout, stderr) {
-        if (err) {
-            log('Picture command error');
-            return callback(err);
-        } else {
-
-            shotNumber += 1;
-
-            if (shotNumber === 4) {
-                return callback(null);
-            } else {
-                pictureProcess(filename, callback);
-            }
-        }
-    });
 }
 
 /** 
@@ -84,6 +76,75 @@ function stopStream() {
     });
 }
 
+/**
+ * Take a shot
+ * @param {String} filename Full relative path of the picture
+ * @param {function} callback
+ */
+function shotProcess(filename, callback) {
+
+    log('Take picture ' + (shotNumber + 1));
+
+    var cmd = SHOT_COMMAND + filename + '_' + shotNumber + '.jpg';
+
+    exec(cmd, function (err, stdout, stderr) {
+        if (err) {
+            log('Picture command error');
+            return callback(err);
+        } else {
+
+            shotNumber += 1;
+
+            if (shotNumber === 4) {
+                shotNumber = 0;
+                return callback(null);
+            } else {
+                shotProcess(filename, callback);
+            }
+        }
+    });
+}
+
+/**
+ * Launch image-magick montage command
+ * @param {String} filename Full relative path of the picture
+ * @param {function} callback
+ */
+function picturePostprocessing(filename, callback) {
+    var cmd = MONTAGE_COMMAND + filename + '_[0-3].jpg ' + filename + '.jpg';
+
+    log('Start picture post-processing');
+
+    exec(cmd, function (err, stdout, stderr) {
+        if (err) {
+            log('Error while montage command');
+            return callback(err);
+        } else {
+            return callback(null);
+        }
+    });
+}
+
+/**
+ * Restart the mjpg streaming
+ * @param {function} callback
+ */
+function restartStream(callback) {
+    pm2.connect(function () {
+        pm2.start('streamer', function (err, proc) {
+            if (!err) {
+                log('Video stream is on');
+                pm2.disconnect();
+
+                return callback(null);
+            } else {
+
+                return callback(err);
+            }
+        });
+    });
+}
+
 /** 
  * Set the name, launch the shot and then post-process the picture  
  * @param {Object} socket WebSocket use by the client 
@@ -91,41 +152,41 @@ function stopStream() {
 function takePicture(socket) {
 
     var date = new Date();
-    var url = "/photos/test_" + date.getFullYear() + "-" + date.getUTCMonth() + "-" + date.getDate() + "_" + date.getHours() + "-" + date.getMinutes() + "-" + date.getSeconds();
+
+    var url = BASE_FILENAME +
+        "_" + date.getFullYear() +
+        "-" + date.getUTCMonth() +
+        "-" + date.getDate() +
+        "_" + date.getHours() +
+        "-" + date.getMinutes() +
+        "-" + date.getSeconds();
+
     var filename = "public" + url;
 
-    pm2.connect(function () {
+    async.series([
+            function (callback) {
+            shotProcess(filename, callback)
+            },
 
-        shotNumber = 0;
+            function (callback) {
+            socket.emit('processing');
+            picturePostprocessing(filename, callback)
+            },
 
-        pictureProcess(filename, function (err) {
-            if (!err) {
+            restartStream,
 
-                socket.emit('processing');
-
-                var cmd = 'montage -background "#FFFFFF" -geometry 700x499\\>+20+20 ' + filename + '_[0-3].jpg ' + filename + '.jpg';
-
-                log('Start picture post-processing');
-
-                exec(cmd, function (err, stdout, stderr) {
-                    if (err) {
-                        log('Error while montage command');
-                    } else {
-                        pm2.start('streamer', function (err, proc) {
-                            if (!err) {
-                                log('Pictures ready');
-                                pm2.disconnect();
-                                setTimeout(function () {
-                                    url += '.jpg';
-                                    socket.emit('ends', url);
-                                }, 1000);
-                            }
-                        });
-                    }
-                });
+            function (callback) {
+            url += '.jpg';
+            socket.emit('ends', url);
+            callback(null);
             }
-        });
+
+        ], function (err, results) {
+        if (err) {
+            log(err);
+        }
     });
+
 }
 
 app.get("/", function (req, res) {
@@ -133,7 +194,8 @@ app.get("/", function (req, res) {
 });
 
 app.use(express.static(__dirname + "/public"));
-server.listen(4242, function () {
+
+server.listen(config.webserver_port, function () {
     log("Webserver is ready");
 });
 
