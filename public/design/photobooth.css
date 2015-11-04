@@ -1,0 +1,78 @@
+@font-face {
+    font-family: "Poiret-One";
+    src: url('../assets/poiret_one/PoiretOne-Regular.ttf');
+}
+
+body {
+    font-family: "Poiret-One", cursive;
+    margin: 0 auto;
+    background-color: #DBD2CD;
+}
+
+header {
+    font-size: 6em;
+    text-align: center;
+    background-color: #FD7577;
+    color: white;
+}
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 10;
+    background-color: rgb(255, 255, 255);
+    text-align: center;
+    font-size: 8em;
+    padding-top: 25%;
+    font-weight: bold;
+    display: none;
+}
+
+#loading {
+    display: none;
+}
+
+#main {
+    display: flex;
+    width: 100%;
+    height: calc(100% - 10em);
+}
+
+aside {
+    width: 350px;
+    text-align: center;
+}
+
+section {
+    flex: 4;
+    text-align: center;
+    padding: 10px;
+    min-width: 660px;
+}
+
+
+/* ration = 1.7 */
+
+#visu {
+    margin-top: 10px;
+    width: 640px;
+    height: 480px;
+}
+
+#trigger {
+    margin-top: 10px;
+    font-size: 2em;
+    color: white;
+    background-color: #FD7577;
+    border: 1px solid #FD7775;
+    padding: 20px;
+    font-family: "Poiret-One", cursive;
+}
+
+.illustration {
+    width: 150px;
+    margin-top: 200px;
+}

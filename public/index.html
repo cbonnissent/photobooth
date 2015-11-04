@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PhotoBooth</title>
+    <link rel=stylesheet href="design/photobooth.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+
+    <header onclick="fullscreen()">
+        PhotoBooth
+    </header>
+
+    <div id="overlay">
+        <span id="countdown">3</span>
+        <img id="loading" src="assets/loading.gif" />
+    </div>
+
+    <div id="main">
+
+        <aside id="left">
+            <img class="illustration" src="assets/couple.png" />
+        </aside>
+
+        <section>
+            <img id="visu" src="http://192.168.0.103:9000/?action=stream" alt="visualisation camera" />
+            <br/>
+            <button id="trigger" onclick="shoot()">Cheese !!!</button>
+        </section>
+
+        <aside id="right">
+            <img class="illustration" src="assets/couple.png" />
+        </aside>
+
+    </div>
+
+</body>
+<script type="text/javascript" src="js/photobooth.js"></script>
+
+</html>
