@@ -30,16 +30,30 @@ SOFTWARE.*/
 var exec = require('child_process').exec;
 var child;
 
+/**
+ * Format log output width [DATE] - [MESSAGE]
+ * @param {String} str Message to log
+ */
+function log(str) {
+    var date = new Date();
+    console.log(date.toUTCString(), '-', str);
+}
+
+
 child = exec('/home/pi/mjpg-streamer/mjpg-streamer-experimental/mjpg_streamer -i "input_raspicam.so -fps 20 -q 50 -x 640 -y 480" -o "output_http.so -p 9000 -w /home/pi/mjpg-streamer/mjpg-streamer-experimentalwww"', function (err, stdout, stderr) {
     if (err) {
-        console.log('oups', stderr);
+        log('Error with the mjpeg streaming');
+    } else {
+        log('Mjpeg streaming online');
     }
 });
 
 process.on('SIGINT', function () {
+    log('SIGINT received, proper kill of the mjpeg streaming');
     child.kill();
 });
 
 process.on('SIGTERM', function () {
+    log('SIGTERM received, proper kill of the mjpeg streaming');
     child.kill();
 });
